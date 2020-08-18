@@ -49,16 +49,22 @@ import org.springframework.core.env.MapPropertySource;
 public abstract class NamedContextFactory<C extends NamedContextFactory.Specification>
 		implements DisposableBean, ApplicationContextAware {
 
+	// ex. feign、ribbon
 	private final String propertySourceName;
 
+	// ex. feign.client.name、ribbon.client.name
 	private final String propertyName;
 
+	// 上下文集合
 	private Map<String, AnnotationConfigApplicationContext> contexts = new ConcurrentHashMap<>();
 
+	// 上下文配置
 	private Map<String, C> configurations = new ConcurrentHashMap<>();
 
+	// 父上下文
 	private ApplicationContext parent;
 
+	// 默认的上下文配置
 	private Class<?> defaultConfigType;
 
 	public NamedContextFactory(Class<?> defaultConfigType, String propertySourceName,
@@ -94,6 +100,7 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 		this.contexts.clear();
 	}
 
+	// 获取上下文，没有则创建一个
 	protected AnnotationConfigApplicationContext getContext(String name) {
 		if (!this.contexts.containsKey(name)) {
 			synchronized (this.contexts) {
@@ -105,7 +112,9 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 		return this.contexts.get(name);
 	}
 
+	// 创建上下文
 	protected AnnotationConfigApplicationContext createContext(String name) {
+		// 读取配置并注册到上下文
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 		if (this.configurations.containsKey(name)) {
 			for (Class<?> configuration : this.configurations.get(name)
@@ -113,6 +122,7 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 				context.register(configuration);
 			}
 		}
+		// 读取默认配置并注册到上下文
 		for (Map.Entry<String, C> entry : this.configurations.entrySet()) {
 			if (entry.getKey().startsWith("default.")) {
 				for (Class<?> configuration : entry.getValue().getConfiguration()) {
@@ -120,11 +130,11 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 				}
 			}
 		}
-		context.register(PropertyPlaceholderAutoConfiguration.class,
-				this.defaultConfigType);
-		context.getEnvironment().getPropertySources().addFirst(new MapPropertySource(
-				this.propertySourceName,
-				Collections.<String, Object>singletonMap(this.propertyName, name)));
+		// 注册默认配置到上下文
+		context.register(PropertyPlaceholderAutoConfiguration.class, this.defaultConfigType);
+		// 注册属性
+		context.getEnvironment().getPropertySources().addFirst(new MapPropertySource(this.propertySourceName, Collections.<String, Object>singletonMap(this.propertyName, name)));
+		// 设置父上下文
 		if (this.parent != null) {
 			// Uses Environment from parent as well as beans
 			context.setParent(this.parent);
@@ -132,6 +142,7 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 			// https://github.com/spring-cloud/spring-cloud-netflix/issues/3101
 			context.setClassLoader(this.parent.getClassLoader());
 		}
+		// 刷新上下文
 		context.setDisplayName(generateDisplayName(name));
 		context.refresh();
 		return context;
@@ -141,6 +152,7 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 		return this.getClass().getSimpleName() + "-" + name;
 	}
 
+	// 从上下文中获取配置，如果上下文不存在则创建一个
 	public <T> T getInstance(String name, Class<T> type) {
 		AnnotationConfigApplicationContext context = getContext(name);
 		if (BeanFactoryUtils.beanNamesForTypeIncludingAncestors(context,
