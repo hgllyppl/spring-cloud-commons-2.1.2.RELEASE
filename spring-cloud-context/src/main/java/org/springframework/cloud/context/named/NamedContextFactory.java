@@ -117,8 +117,7 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 		// 读取配置并注册到上下文
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
 		if (this.configurations.containsKey(name)) {
-			for (Class<?> configuration : this.configurations.get(name)
-					.getConfiguration()) {
+			for (Class<?> configuration : this.configurations.get(name).getConfiguration()) {
 				context.register(configuration);
 			}
 		}
@@ -152,11 +151,10 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 		return this.getClass().getSimpleName() + "-" + name;
 	}
 
-	// 从上下文中获取配置，如果上下文不存在则创建一个
+	// 从上下文中获取对象，如果上下文不存在则创建一个
 	public <T> T getInstance(String name, Class<T> type) {
 		AnnotationConfigApplicationContext context = getContext(name);
-		if (BeanFactoryUtils.beanNamesForTypeIncludingAncestors(context,
-				type).length > 0) {
+		if (BeanFactoryUtils.beanNamesForTypeIncludingAncestors(context, type).length > 0) {
 			return context.getBean(type);
 		}
 		return null;
